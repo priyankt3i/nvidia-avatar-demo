@@ -10,7 +10,8 @@ function hasCredentials() {
 }
 
 export function createNvidiaAceClient(): AceClient {
-  const mock = !hasCredentials();
+  const forceMock = process.env.USE_MOCK_NVIDIA === 'true';
+  const mock = forceMock || !hasCredentials();
 
   if (mock) {
     return {

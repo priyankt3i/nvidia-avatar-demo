@@ -2,7 +2,8 @@ function hasCredentials() {
     return Boolean(process.env.A2F_API_URL && process.env.A2F_API_KEY);
 }
 export function createAudio2FaceClient() {
-    const mock = !hasCredentials();
+    const forceMock = process.env.USE_MOCK_NVIDIA === 'true';
+    const mock = forceMock || !hasCredentials();
     if (mock) {
         return {
             isMock: true,
@@ -21,7 +22,6 @@ export function createAudio2FaceClient() {
     return {
         isMock: false,
         async processAudioToBlendshapes(wavBytes) {
-            // Force a plain Uint8Array copy so TS treats it as ArrayBufferView, not Buffer
             const u8 = wavBytes instanceof Uint8Array ? new Uint8Array(wavBytes) : new Uint8Array(wavBytes);
             const res = await fetch(`${apiUrl}/audio2face/blendshapes`, {
                 method: 'POST',

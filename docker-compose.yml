@@ -6,21 +6,24 @@ services:
       dockerfile: server/Dockerfile
     env_file:
       - server/.env
+    environment:
+      - NODE_ENV=production
     ports:
       - '8080:8080'
-    volumes:
-      - ./:/workspace
-    working_dir: /workspace/server
-    command: ["npm", "run", "dev"]
+    networks:
+      - appnet
   client:
     build:
       context: .
       dockerfile: client/Dockerfile
+    environment:
+      - VITE_SERVER_URL=http://server:8080
+    depends_on:
+      - server
     ports:
       - '5173:5173'
-    environment:
-      - VITE_SERVER_URL=http://localhost:8080
-    volumes:
-      - ./:/workspace
-    working_dir: /workspace/client
-    command: ["npm", "run", "dev", "--", "--host"]
+    networks:
+      - appnet
+networks:
+  appnet:
+    driver: bridge

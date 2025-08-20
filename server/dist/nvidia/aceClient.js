@@ -2,7 +2,8 @@ function hasCredentials() {
     return Boolean(process.env.ACE_API_URL && process.env.ACE_API_KEY);
 }
 export function createNvidiaAceClient() {
-    const mock = !hasCredentials();
+    const forceMock = process.env.USE_MOCK_NVIDIA === 'true';
+    const mock = forceMock || !hasCredentials();
     if (mock) {
         return {
             isMock: true,

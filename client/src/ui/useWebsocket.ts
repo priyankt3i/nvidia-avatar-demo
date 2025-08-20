@@ -17,8 +17,10 @@ export function useWebsocket(): WsApi {
   const animationCbRef = useRef<WsApi['onFacialAnimation']>();
 
   useEffect(() => {
-    const url = new URL('/ws', window.location.origin.replace('http', 'ws'));
-    const ws = new WebSocket(url);
+    const base = import.meta.env.VITE_SERVER_URL || window.location.origin;
+    const wsBase = base.replace('http', 'ws');
+    const wsUrl = `${wsBase}/ws`;
+    const ws = new WebSocket(wsUrl);
     ws.binaryType = 'arraybuffer';
     ws.onopen = () => setConnected(true);
     ws.onclose = () => setConnected(false);

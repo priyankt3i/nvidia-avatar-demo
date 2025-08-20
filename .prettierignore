@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+coverage
+*.svg
+*.png
+*.jpg
+*.jpeg
+*.gif

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: nvidia-ace-backend
+    env: node
+    plan: free
+    buildCommand: npm install --workspaces --no-audit --no-fund && npm -w server run build
+    startCommand: node server/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+    autoDeploy: true

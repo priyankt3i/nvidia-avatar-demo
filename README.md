@@ -163,6 +163,43 @@ Security:
 
 ---
 
+### Placeholders and Simulation
+This prototype includes safe fallbacks so you can develop without NVIDIA keys or GPUs:
+
+- NVIDIA ACE and Audio2Face
+  - If `USE_MOCK_NVIDIA=true` or required keys/URLs are missing:
+    - ACE pose enhancement returns a transparent placeholder image
+    - Audio2Face returns synthetic sinusoidal blendshape frames
+
+- TTS
+  - ElevenLabs works when `ELEVENLABS_API_KEY` is set; otherwise a short silent WAV is returned
+  - Google TTS is not implemented in this prototype
+
+- LLM
+  - OpenAI is used when `OPENAI_API_KEY` is set; otherwise a mock reply is returned
+
+- 3D Model
+  - `client/public/head.glb` is a placeholder path; provide a real GLB head model to render the avatar
+
+---
+
+### Switching to Real Mode (Production NVIDIA SDK)
+1. Set `USE_MOCK_NVIDIA=false` (or remove the line) in `server/.env`
+2. Provide valid NVIDIA endpoints and keys:
+   - `ACE_API_URL`, `ACE_API_KEY`
+   - `A2F_API_URL`, `A2F_API_KEY`
+3. Provide TTS and LLM keys (recommended):
+   - TTS: `ELEVENLABS_API_KEY`
+   - LLM: `OPENAI_API_KEY`
+4. Frontend requirements:
+   - Place a valid `client/public/head.glb`
+   - In Vercel (or any static host), set `VITE_SERVER_URL` to your backend base URL
+5. Restart the apps (or redeploy). In production deployments, use HTTPS/WSS and set `CORS_ORIGIN`/`WS_ALLOWED_ORIGINS` appropriately.
+
+Note: Some A2F deployments expect WAV/PCM input. ElevenLabs returns MP3 by default; if facial animation from TTS fails, switch ElevenLabs to PCM output or transcode MP3→WAV on the server.
+
+---
+
 ### Docker (One‑Command)
 Build and run both services:
 ```bash

@@ -1,65 +1,21 @@
 ## NVIDIA ACE + Audio2Face Prototype (Node.js + React + Vite)
 
-A full‑stack prototype integrating NVIDIA ACE (RTX Neural Faces) and Audio2Face concepts with a React Three.js avatar. Runs in two modes:
-- Mock mode (no NVIDIA keys required) for local development
-- Production mode using real ACE/Audio2Face endpoints (requires keys)
+A full‑stack prototype with a React Three.js avatar, real‑time microphone streaming, and local/on‑device NVIDIA Audio2Face integration focus. The app now defaults to:
+- Local/on‑device Audio2Face (A2F) via `A2F_LOCAL_URL`
+- ACE functionality disabled by default (no cloud ACE API keys needed)
+- Gemini as primary LLM (fallback to OpenAI if set, then mock)
+- ElevenLabs for TTS (PCM/WAV compatible with A2F), fallback silent WAV
+
+You can still run mock mode if local A2F isn’t available.
 
 ### Highlights
 - **Backend**: Express.js, WebSocket, dotenv, Helmet, CORS, TypeScript
-- **NVIDIA Clients**: `ACE` pose enhancement and `Audio2Face` audio→blendshapes with mock fallbacks
-- **Real‑time**: WebSocket streaming of microphone audio and avatar animation frames
+- **Local A2F**: Prefer `A2F_LOCAL_URL` for on-device Audio2Face microservice
+- **Real‑time**: WebSocket audio streaming → A2F blendshapes → avatar morphs
 - **Frontend**: React + Vite + TailwindCSS + framer‑motion + Three.js viewer
-- **Shared**: TypeScript types shared across client and server
-- **TTS/LLM**: ElevenLabs (TTS) + OpenAI (LLM) with mock fallbacks
+- **LLM/TTS**: Gemini (primary), OpenAI (fallback), ElevenLabs TTS with PCM/WAV
+- **Mocking**: Safe fallbacks for A2F/ACE/LLM/TTS for rapid dev
 - **Docker**: Dockerfiles per app + docker‑compose for one‑command run
-- **Deploy**: Vercel (frontend) + Render/AWS (backend)
-
----
-
-### Repository Structure
-```text
-/shared
-  package.json
-  tsconfig.json
-  src/index.ts         # Shared TS types (WS messages, blendshapes)
-
-/server
-  src/index.ts         # Express app + WS server
-  src/ws.ts            # WS handlers (audio/pose/chat)
-  src/tts.ts           # TTS (ElevenLabs supported, Google stub)
-  src/llm.ts           # LLM (OpenAI or mock)
-  src/nvidia/aceClient.ts        # ACE client with mock fallback
-  src/nvidia/audio2faceClient.ts # Audio2Face client with mock fallback
-  .env.example
-  Dockerfile
-  tsconfig.json
-
-/client
-  src/ui/App.tsx       # Main UI (mic, chat, viewer)
-  src/ui/AvatarViewer.tsx   # Three.js GLB loader + morph targets + textures
-  src/ui/useWebsocket.ts    # WS client (facialAnimation, enhancedFace, ttsAudio)
-  src/ui/useMicStream.ts    # Microphone capture → WAV chunks
-  public/head.glb      # Place your GLB head model here
-  index.html
-  vite.config.ts
-  tailwind.config.js
-  postcss.config.js
-  Dockerfile
-  vercel.json
-
-package.json            # npm workspaces (server, client, shared)
-tsconfig.base.json      # base TS config with paths
-.eslintrc.cjs, .prettierrc
-Docker-compose.yml
-README.md
-```
-
----
-
-### Prerequisites
-- Node.js 20+
-- npm 10+
-- Optional: Docker 24+
 
 ---
 
@@ -67,153 +23,117 @@ README.md
 Create `server/.env` based on `server/.env.example`.
 
 ```bash
-# server/.env
 PORT=8080
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:5173
 WS_ALLOWED_ORIGINS=http://localhost:5173
 
-# Toggle NVIDIA mock mode (true = mock without real SDK keys)
-USE_MOCK_NVIDIA=true
+# Local/on-device A2F
+USE_LOCAL_A2F=true
+A2F_LOCAL_URL=http://localhost:5000   # your local A2F microservice base URL
 
-# NVIDIA ACE / Audio2Face (set for production use)
+# Disable ACE cloud by default (no on-device ACE path in this prototype)
+DISABLE_ACE=true
+
+# (Optional) Cloud endpoints (not required for local dev)
 ACE_API_URL=
 ACE_API_KEY=
 A2F_API_URL=
 A2F_API_KEY=
 
-# TTS Providers (ElevenLabs recommended in this prototype)
-ELEVENLABS_API_KEY=
-# GOOGLE_TTS_JSON_BASE64=   # Not implemented in this prototype
+# LLM/TTS
+GEMINI_API_KEY=          # primary LLM
+ELEVENLABS_API_KEY=      # TTS (PCM/WAV)
+# GOOGLE_TTS_JSON_BASE64=   # Not implemented here
 
-# LLM Provider (optional, uses mock if unset)
+# Fallback LLM (optional)
 OPENAI_API_KEY=
 ```
 
-Frontend can optionally use `VITE_SERVER_URL` to point at a deployed backend:
-- Local dev: not required
-- Vercel: set `VITE_SERVER_URL` to your public backend (Render/AWS) URL
+Frontend (if deployed) can specify `VITE_SERVER_URL` to point at the backend URL.
 
 ---
 
-### Install
+### Local NVIDIA Audio2Face (On‑Device)
+- Run A2F locally as an app/microservice. See:
+  - Omniverse Audio2Face: https://docs.omniverse.nvidia.com/audio2face/latest/
+- Expose a compatible endpoint such as `/audio2face/blendshapes` that accepts 16kHz mono WAV/PCM bytes and returns a JSON array of blendshape frames.
+- Update `A2F_LOCAL_URL` and set `USE_LOCAL_A2F=true`.
+- If your local A2F requires a token, put it in `A2F_API_KEY` (optional).
+
+If local A2F isn’t available, the app will generate mock blendshapes.
+
+---
+
+### LLM / TTS
+- **LLM**: Gemini (primary). Set `GEMINI_API_KEY`. If unset, OpenAI used if `OPENAI_API_KEY` present. Otherwise, a mock reply is sent.
+- **TTS**: ElevenLabs. Set `ELEVENLABS_API_KEY`. We request PCM at 16kHz and wrap as WAV when needed for A2F.
+
+---
+
+### Install & Run
 ```bash
 npm install --workspaces
-```
-
-### Run (Local Development)
-- Concurrent dev for server and client:
-```bash
 npm run dev
 ```
-- Open the app at `http://localhost:5173`
-- Health check: `http://localhost:8080/health`
+- Client: http://localhost:5173
+- Server: http://localhost:8080 (health: `/health`)
 
-By default, `USE_MOCK_NVIDIA=true` returns mocked animations/images so you can develop without GPU/keys.
-
----
-
-### 3D Avatar Model
-- Add a GLB head model at `client/public/head.glb`
-- The viewer supports morph targets (blendshapes). Common names (e.g., ARKit‑style):
-  - `jawOpen`, `eyeBlinkLeft`, `eyeBlinkRight`, `mouthSmileLeft`, `mouthSmileRight`, etc.
-- The backend sends frames with `coefficients: Record<string, number>`; matching names will be applied to `morphTargetInfluences`.
+Add a GLB head model at `client/public/head.glb` for the viewer to render.
 
 ---
 
-### WebSocket Protocol
-WS endpoint: `ws://<server>/ws`
-
-Client → Server messages:
-```json
-{ "type": "audio", "payload": { "data": "<binary ArrayBuffer sent as WS binary frame>" } }
-{ "type": "pose",  "payload": { "headYaw": 0.15, "...": "pose fields" } }
-{ "type": "chat",  "payload": { "text": "Hello!" } }
-```
-
-Server → Client messages:
-```json
-{ "type": "facialAnimation", "payload": [{
-  "timestampMs": 0,
-  "coefficients": { "jawOpen": 0.2, "mouthSmileLeft": 0.8 }
-}]}
-
-{ "type": "enhancedFace", "payload": { "imageBase64": "data:image/png;base64,..." } }
-
-{ "type": "ttsAudio", "payload": { "mime": "audio/mpeg", "dataBase64": "..." } }
-
-{ "type": "error", "error": "message" }
-```
-
-Behavior:
-- `audio` binary frames: processed by Audio2Face → emits `facialAnimation`
-- `pose` JSON: sent to ACE (or mock) → emits `enhancedFace`
-- `chat` JSON: LLM generates reply → TTS synthesizes → emits `ttsAudio` and attempts `facialAnimation` from the TTS audio
-
-Security:
-- CORS origin set via `CORS_ORIGIN`
-- WS origin allowlist via `WS_ALLOWED_ORIGINS`
-- Use HTTPS/WSS in production
+### WebSocket Flow
+- Client streams mic audio (WAV chunks) → server → A2F → blendshapes → client morph targets
+- Chat: client sends text → LLM reply → TTS (WAV) → client plays audio; A2F also attempts to generate blendshapes from this audio
+- Pose: if ACE is disabled (default), server returns a placeholder image for enhanced face
 
 ---
 
-### TTS & LLM
-- ElevenLabs: set `ELEVENLABS_API_KEY` to enable real TTS; otherwise a silent WAV is returned for dev
-- OpenAI: set `OPENAI_API_KEY` to enable LLM replies; otherwise a mock reply is used
+### Placeholders and Simulation
+- If `USE_LOCAL_A2F` is false and cloud keys aren’t set, A2F is mocked (sinusoidal blendshapes)
+- If `DISABLE_ACE=true`, ACE calls are mocked (transparent image)
+- If TTS/LLM keys are missing, TTS returns a silent WAV and LLM returns a mock reply
+- `client/public/head.glb` is a placeholder path; provide a real GLB model
 
 ---
 
-### Docker (One‑Command)
-Build and run both services:
+### Docker
 ```bash
 docker-compose up --build
 ```
-- Client: `http://localhost:5173`
-- Server: `http://localhost:8080`
-- Client connects to server via `VITE_SERVER_URL=http://server:8080` in the compose network
+- Client: http://localhost:5173
+- Server: http://localhost:8080
 
-Production tips:
-- For production images, consider multi‑stage builds that serve the client statically (e.g., Nginx) and harden the server container
+For local A2F, ensure your A2F service is reachable from the server container (e.g., host network or expose port).
 
 ---
 
 ### Deployment
+- Frontend (Vercel): set `VITE_SERVER_URL` to your backend URL
+- Backend (Render or AWS): deploy container and set env vars. In this local‑first setup, you might keep A2F on an internal LAN or host.
 
-#### Frontend (Vercel)
-1. Import the `client` directory as a Vercel project
-2. Framework Preset: Vite
-3. Build Command: `npm run build`
-4. Output Directory: `dist`
-5. Environment Variables:
-   - `VITE_SERVER_URL` → your backend base URL (e.g., `https://your-backend.onrender.com`)
+---
 
-`client/vercel.json` is included to route SPA paths to `index.html`.
-
-#### Backend (Render)
-- Use `server/render.yaml` as a starting point
-- Build Command: `npm install --workspaces --no-audit --no-fund && npm -w server run build`
-- Start Command: `node server/dist/index.js`
-- Environment Variables: set all keys needed (`ACE_*`, `A2F_*`, `ELEVENLABS_API_KEY`, `OPENAI_API_KEY`, `USE_MOCK_NVIDIA`)
-
-#### Backend (AWS)
-- Build a Docker image from `server/Dockerfile`
-- Push to ECR and deploy via ECS/Fargate or run on EC2
-- Expose port 8080; set env vars in task definition or SSM Parameter Store
-- Terminate TLS with an ALB and forward to the service (WSS supported)
+### Tips & Known Limitations
+- ElevenLabs default MP3 is replaced with PCM for A2F; ensure your A2F expects/accepts 16kHz mono WAV/PCM
+- WebSocket origin restrictions: set `WS_ALLOWED_ORIGINS`
+- CSP may need adjustments if you lock down Helmet further
+- Mic capture uses ScriptProcessorNode; consider AudioWorklet for lower latency later
 
 ---
 
 ### Scripts
 Root:
 ```bash
-npm run dev      # Run server + client concurrently (dev)
-npm run build    # Build shared, server, client
+npm run dev      # dev server + client
+npm run build    # build all workspaces
 npm run lint     # ESLint
 npm run format   # Prettier
 ```
 Server:
 ```bash
-npm -w server run dev
+npm -w server run dev  # uses tsx watch
 npm -w server run build
 npm -w server run start
 ```
@@ -223,25 +143,3 @@ npm -w client run dev
 npm -w client run build
 npm -w client run preview
 ```
-
----
-
-### Troubleshooting
-- Three.js types: `@types/three` is installed; if you see type errors, `npm -w client install @types/three`
-- GLB not loading: place a valid `head.glb` under `client/public/`
-- CORS/WS blocked: ensure `CORS_ORIGIN` and `WS_ALLOWED_ORIGINS` include your frontend origin
-- A2F expecting WAV: current mic stream sends WAV chunks; some TTS returns MP3 which A2F may not accept (we catch errors). Convert to WAV server‑side if needed
-- NPM peer conflicts: use the versions pinned in `package.json` or run `npm install --legacy-peer-deps` as a last resort
-
----
-
-### Roadmap
-- Real Google TTS via google‑auth‑library
-- Better TTS→A2F alignment with viseme timing
-- Authentication and rate limiting
-- Persist chat history and session management
-
----
-
-### License
-For internal prototyping use. Add your license of choice (e.g., MIT) before public release.

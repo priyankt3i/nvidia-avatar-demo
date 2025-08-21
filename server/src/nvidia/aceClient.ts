@@ -10,23 +10,20 @@ function hasCredentials() {
 }
 
 export function createNvidiaAceClient(): AceClient {
+  const forceDisable = process.env.DISABLE_ACE === 'true';
   const forceMock = process.env.USE_MOCK_NVIDIA === 'true';
-  const mock = forceMock || !hasCredentials();
+  const mock = forceDisable || forceMock || !hasCredentials();
 
   if (mock) {
     return {
       isMock: true,
-      async authenticate() {
-        return;
-      },
+      async authenticate() { return; },
       async sendPoseEnhancement(_poseData: unknown) {
         const transparentPngBase64 =
           'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AApMBfQ7mGswAAAAASUVORK5CYII=';
         return { imageBase64: `data:image/png;base64,${transparentPngBase64}` };
       },
-      async sendInference(payload: unknown) {
-        return { mocked: true, payload };
-      },
+      async sendInference(payload: unknown) { return { mocked: true, payload }; },
     };
   }
 
@@ -35,9 +32,7 @@ export function createNvidiaAceClient(): AceClient {
 
   return {
     isMock: false,
-    async authenticate() {
-      return;
-    },
+    async authenticate() { return; },
     async sendPoseEnhancement(poseData: unknown) {
       const res = await fetch(`${apiUrl}/pose/enhance`, {
         method: 'POST',
@@ -47,9 +42,7 @@ export function createNvidiaAceClient(): AceClient {
         },
         body: JSON.stringify({ pose: poseData }),
       });
-      if (!res.ok) {
-        throw new Error(`ACE pose enhance failed: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`ACE pose enhance failed: ${res.status}`);
       const data = (await res.json()) as { imageBase64: string };
       return data;
     },
@@ -62,9 +55,7 @@ export function createNvidiaAceClient(): AceClient {
         },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        throw new Error(`ACE inference failed: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`ACE inference failed: ${res.status}`);
       return (await res.json()) as unknown;
     },
   };

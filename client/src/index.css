@@ -2,14 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light dark; }
-
-html, body, #root { height: 100%; }
-body { @apply bg-background text-foreground antialiased; }
-
-.card { @apply rounded-lg border bg-white dark:bg-neutral-900 shadow-sm; }
-.btn { @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none h-9 px-3; }
-.btn-primary { @apply btn bg-primary text-white hover:opacity-90; }
-.btn-outline { @apply btn border hover:bg-muted; }
-.input { @apply w-full rounded-md border bg-transparent px-3 py-2 text-sm; }
-.text-muted { @apply text-gray-500; }
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md font-semibold transition-colors;
+  }
+  .btn-primary {
+    @apply btn bg-blue-600 text-white hover:bg-blue-700;
+  }
+  .btn-outline {
+    @apply btn border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800;
+  }
+  .input {
+    @apply px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500;
+  }
+  .card {
+    @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg;
+  }
+  .text-muted {
+    @apply text-gray-500 dark:text-gray-400;
+  }
+  .chat-bubble {
+    @apply p-3 rounded-lg max-w-[80%];
+  }
+  .chat-bubble-user {
+    @apply bg-blue-600 text-white self-end;
+  }
+  .chat-bubble-ai {
+    @apply bg-gray-200 dark:bg-gray-700 self-start;
+  }
+}

@@ -4,6 +4,7 @@ export function useWebsocket() {
     const [lastEnhancedImage, setLastEnhancedImage] = useState();
     const wsRef = useRef(null);
     const animationCbRef = useRef();
+    const chatCbRef = useRef();
     useEffect(() => {
         const base = import.meta.env.VITE_SERVER_URL || window.location.origin;
         const wsBase = base.replace('http', 'ws');
@@ -26,6 +27,8 @@ export function useWebsocket() {
                         const { dataBase64, mime } = msg.payload;
                         const audio = new Audio(`data:${mime};base64,${dataBase64}`);
                         void audio.play();
+                    } else if (msg.type === 'chat') {
+                        chatCbRef.current?.(msg.payload);
                     }
                 }
                 catch { }
@@ -40,13 +43,27 @@ export function useWebsocket() {
     return {
         connected,
         lastEnhancedImage,
-        sendJson: (obj) => wsRef.current?.send(JSON.stringify(obj)),
-        sendBinary: (data) => wsRef.current?.send(data),
+        sendJson: (obj) => {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify(obj));
+            }
+        },
+        sendBinary: (data) => {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(data);
+            }
+        },
         get onFacialAnimation() {
             return animationCbRef.current;
         },
         set onFacialAnimation(cb) {
             animationCbRef.current = cb;
         },
+        get onChat() {
+            return chatCbRef.current;
+        },
+        set onChat(cb) {
+            chatCbRef.current = cb;
+        }
     };
 }

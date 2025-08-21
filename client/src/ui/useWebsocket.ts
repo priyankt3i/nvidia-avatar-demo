@@ -15,15 +15,37 @@ export function useWebsocket(): WsApi {
   const [lastEnhancedImage, setLastEnhancedImage] = useState<string | undefined>();
   const wsRef = useRef<WebSocket | null>(null);
   const animationCbRef = useRef<WsApi['onFacialAnimation']>();
+  const sendQueueRef = useRef<(string | ArrayBuffer)[]>([]);
 
   useEffect(() => {
-    const base = import.meta.env.VITE_SERVER_URL || window.location.origin;
-    const wsBase = base.replace('http', 'ws');
-    const wsUrl = `${wsBase}/ws`;
+    let wsUrl: string;
+    if (import.meta.env.DEV) {
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:8080';
+      wsUrl = `${serverUrl.replace(/^http/, 'ws')}/ws`;
+    } else {
+      wsUrl = `${window.location.origin.replace(/^http/, 'ws')}/ws`;
+    }
+
     const ws = new WebSocket(wsUrl);
     ws.binaryType = 'arraybuffer';
-    ws.onopen = () => setConnected(true);
-    ws.onclose = () => setConnected(false);
+
+    ws.onopen = () => {
+      setConnected(true);
+      wsRef.current = ws;
+      // Send any queued messages
+      for (const msg of sendQueueRef.current) {
+        ws.send(msg);
+      }
+      sendQueueRef.current = [];
+    };
+
+    ws.onclose = () => {
+      setConnected(false);
+      if (wsRef.current === ws) {
+        wsRef.current = null;
+      }
+    };
+
     ws.onmessage = (evt: MessageEvent<string | ArrayBuffer>) => {
       if (typeof evt.data === 'string') {
         try {
@@ -40,23 +62,40 @@ export function useWebsocket(): WsApi {
         } catch {}
       }
     };
-    wsRef.current = ws;
+
     return () => {
       ws.close();
-      wsRef.current = null;
     };
   }, []);
 
-  return {
-    connected,
-    lastEnhancedImage,
-    sendJson: (obj: Record<string, unknown>) => wsRef.current?.send(JSON.stringify(obj)),
-    sendBinary: (data: ArrayBuffer) => wsRef.current?.send(data),
-    get onFacialAnimation() {
-      return animationCbRef.current;
-    },
-    set onFacialAnimation(cb) {
-      animationCbRef.current = cb;
-    },
-  } as any;
+  const api = useMemo<WsApi>(() => {
+    return {
+      connected,
+      lastEnhancedImage,
+      sendJson: (obj: Record<string, unknown>) => {
+        const msg = JSON.stringify(obj);
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(msg);
+        } else {
+          sendQueueRef.current.push(msg);
+        }
+      },
+      sendBinary: (data: ArrayBuffer) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(data);
+        } else {
+          sendQueueRef.current.push(data);
+        }
+      },
+      get onFacialAnimation() {
+        return animationCbRef.current;
+      },
+      set onFacialAnimation(cb) {
+        animationCbRef.current = cb;
+      },
+    };
+  }, [connected, lastEnhancedImage]);
+
+  return api;
 }
+        

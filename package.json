@@ -1,23 +1,22 @@
 {
-  "name": "nvidia-ace-audio2face-prototype",
+  "name": "digital-human-marketplace",
   "private": true,
   "version": "0.1.0",
-  "workspaces": ["server", "client", "shared"],
+  "packageManager": "pnpm@9.7.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build": "npm -w shared run build && npm -w server run build && npm -w client run build",
-    "dev": "npm -w server run dev & npm -w client run dev",
-    "lint": "eslint .",
-    "format": "prettier --write ."
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier -w ."
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.2.1",
-    "eslint-plugin-react": "^7.35.0",
-    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "prettier": "^3.3.3",
+    "turbo": "^2.1.3",
     "typescript": "^5.5.4"
   }
 }

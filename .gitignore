@@ -1,31 +1,12 @@
-# Dependencies
-node_modules/
-
-# Builds
-/dist/
-/build/
-/.turbo/
-/.parcel-cache/
-/.next/
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Env
-.env
-.env.local
-.env.*.local
-
-# Editor
-.vscode/
-.idea/
+node_modules
 .DS_Store
-
-# TypeScript
-*.tsbuildinfo
-
-# Docker
-*.pid
+.next
+out
+build
+dist
+.env*
+coverage
+*.log
+.vercel
+.nextcache
+pnpm-lock.yaml

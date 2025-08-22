@@ -1,0 +1,23 @@
+{
+  "name": "@dhm/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "prisma": {
+    "schema": "./prisma/schema.prisma"
+  },
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "db:seed": "tsx ./scripts/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.18.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.18.0",
+    "tsx": "^4.19.0",
+    "zod": "^3.23.8"
+  }
+}
